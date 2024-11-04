@@ -21,11 +21,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         // get token from header
         String token = tokenService.extractToken(request);
-        System.out.println("@@@@@@JMJ-TOKEN" + token);
 
         // if token is valid
         if (token != null) {
-            System.out.println("@@@JMJ" + tokenService.verifyToken(token));
             if (tokenService.verifyToken(token)) {
                 // get member info from token
                 Authentication authentication = tokenService.getAuthentication(token);
