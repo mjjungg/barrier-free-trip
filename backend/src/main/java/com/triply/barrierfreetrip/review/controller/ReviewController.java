@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -35,10 +36,13 @@ public class ReviewController {
         try {
             Member member = (Member) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             //Member member = memberRepository.findById(Long.valueOf(41)).get();
-            TouristFacility touristFacility = touristFacilityService.findByContentId(contentId);
-            Review review = reviewService.createReview(member, touristFacility,
-                    requestData.getRating(), requestData.getContent());
+            Optional<TouristFacility> touristFacility = touristFacilityService.findByContentId(contentId);
 
+            if (touristFacility.isPresent()) {
+                Review review = reviewService.createReview(member, touristFacility.get(),
+                        requestData.getRating(), requestData.getContent());
+
+            }
             return ApiResponseBody.createSuccess(emptyDocument);
         } catch (Exception e) {
             return ApiResponseBody.createFail(emptyDocument, e.getMessage());
@@ -48,18 +52,24 @@ public class ReviewController {
     @GetMapping("/reviews/{contentId}")
     public ApiResponseBody<?> getReview(@PathVariable("contentId") String contentId) {
         try {
-            TouristFacility facility = touristFacilityService.findByContentId(contentId);
-            List<Review> reviews = facility.getReviews();
-
-            List<ReviewListDto> result = reviews.stream().map(rv -> new ReviewListDto(rv.getMember().getNickname(),
-                    rv.getRating(), rv.getContent(), rv.getCreatedDate())).collect(Collectors.toList());
-
+            Optional<TouristFacility> touristFacility = touristFacilityService.findByContentId(contentId);
             Map<String, Object> map = new HashMap<>();
-            map.put("totalCnt", result.size());
-            map.put("reviews", result);
+
+            if (touristFacility.isPresent()) {
+                List<Review> reviews = touristFacility.get().getReviews();
+
+                List<ReviewListDto> result = reviews.stream().map(rv -> new ReviewListDto(rv.getMember().getNickname(),
+                        rv.getRating(), rv.getContent(), rv.getCreatedDate())).collect(Collectors.toList());
+
+                map.put("totalCnt", result.size());
+                map.put("reviews", result);
+
+            } else {
+                map.put("totalCnt", "0");
+                map.put("reviews", "리뷰를 등록할 컨텐츠가 없습니다.");
+            }
 
             return ApiResponseBody.createSuccess(map);
-
         } catch (Exception e) {
             return ApiResponseBody.createFail(emptyDocument, e.getMessage());
         }
